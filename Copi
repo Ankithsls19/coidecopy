@@ -73,35 +73,46 @@ public class CTNAssignmentQueueable
 
 
 
-
-
 public class CTNService {
 
     public static List<String> getCTNsByZip(String zip, Integer count) {
-        return callApi('zipCode', zip, count);
+
+        Map<String, Object> requestBody = new Map<String, Object>{
+            'searchType'  => 'ZIP',
+            'searchValue' => zip,
+            'count'       => count
+        };
+
+        return callApi(requestBody);
     }
 
     public static List<String> getCTNsByAreaCode(String areaCode, Integer count) {
-        return callApi('areaCode', areaCode, count);
+
+        Map<String, Object> requestBody = new Map<String, Object>{
+            'searchType'  => 'AREA',
+            'searchValue' => areaCode,
+            'count'       => count
+        };
+
+        return callApi(requestBody);
     }
 
-    private static List<String> callApi(
-        String paramName,
-        String paramValue,
-        Integer count
-    ) {
+
+private static List<String> callApi(Map<String, Object> requestBody) {
+
         HttpRequest req = new HttpRequest();
-        req.setEndpoint(
-            'callout:CTN_API?' +
-            paramName + '=' + paramValue +
-            '&count=' + count
-        );
-        req.setMethod('GET');
+        req.setEndpoint('callout:CTN_API'); // Named Credential
+        req.setMethod('POST');
+        req.setHeader('Content-Type', 'application/json');
+        req.setBody(JSON.serialize(requestBody));
 
-        HttpResponse res = new Http().send(req);
+        Http http = new Http();
+        HttpResponse res = http.send(req);
 
-        if (res.getStatusCode() != 200) {
-            throw new CalloutException('CTN API failed');
+        if (res.getStatusCode() != 200 && res.getStatusCode() != 201) {
+            throw new CalloutException(
+                'CTN API failed. Status: ' + res.getStatusCode()
+            );
         }
 
         Map<String, Object> response =
@@ -110,3 +121,4 @@ public class CTNService {
         return (List<String>) response.get('ctns');
     }
 }
+
