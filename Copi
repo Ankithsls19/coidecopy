@@ -1,75 +1,35 @@
 public with sharing class CTNAssignmentController {
 
     @AuraEnabled
-    public static Id assignCTNs(List<Id> addressIds) {
+    public static void assignCTNs(List<Object> requestList) {
 
-        CTN_Assignment_Job__c job = new CTN_Assignment_Job__c(
-            Status__c = 'IN_PROGRESS'
-        );
-        insert job;
+        for (Object obj : requestList) {
 
-        List<Address__c> addresses = [
-            SELECT Id, Zip_Code__c, Area_Code__c
-            FROM Address__c
-            WHERE Id IN :addressIds
-        ];
+            Map<String, Object> req =
+                (Map<String, Object>) obj;
 
-        // 🔑 Map<SearchKey, List<Address>>
-        Map<String, List<Address__c>> searchKeyMap = new Map<String, List<Address__c>>();
+            String searchType  = (String) req.get('searchType');
+            String searchValue = (String) req.get('searchValue');
+            Integer count      = (Integer) req.get('count');
 
-        for (Address__c addr : addresses) {
+            Integer remaining = count;
 
-            String searchKey;
-
-            if (String.isNotBlank(addr.Zip_Code__c)) {
-                searchKey = 'ZIP:' + addr.Zip_Code__c;
-            } else if (String.isNotBlank(addr.Area_Code__c)) {
-                searchKey = 'AREA:' + addr.Area_Code__c;
-            } else {
-                // Optional: handle invalid address
-                continue;
-            }
-
-            searchKeyMap
-                .computeIfAbsent(searchKey, new List<Address__c>())
-                .add(addr);
-        }
-
-        Integer totalBatches = 0;
-
-        // 🔁 Create batches of 5
-        for (String searchKey : searchKeyMap.keySet()) {
-
-            List<Address__c> group = searchKeyMap.get(searchKey);
-
-            for (Integer i = 0; i < group.size(); i += 5) {
-
-                totalBatches++;
-
-                List<Address__c> batch =
-                    group.subList(i, Math.min(i + 5, group.size()));
+            // 🔁 Batch by max 5 per API call
+            while (remaining > 0) {
+                Integer batchSize = Math.min(5, remaining);
+                remaining -= batchSize;
 
                 System.enqueueJob(
                     new CTNAssignmentQueueable(
-                        searchKey,
-                        batch,
-                        job.Id
+                        searchType,
+                        searchValue,
+                        batchSize
                     )
                 );
             }
         }
-
-        job.Total_Batches__c = totalBatches;
-        update job;
-
-        return job.Id;
     }
 }
-
-
-
-
-
 
 
 
@@ -80,71 +40,36 @@ public with sharing class CTNAssignmentController {
 public class CTNAssignmentQueueable
         implements Queueable, Database.AllowsCallouts {
 
-    private String searchKey;
-    private List<Address__c> addresses;
-    private Id jobId;
+    private String searchType;
+    private String searchValue;
+    private Integer batchSize;
 
     public CTNAssignmentQueueable(
-        String searchKey,
-        List<Address__c> addresses,
-        Id jobId
+        String searchType,
+        String searchValue,
+        Integer batchSize
     ) {
-        this.searchKey = searchKey;
-        this.addresses = addresses;
-        this.jobId = jobId;
+        this.searchType = searchType;
+        this.searchValue = searchValue;
+        this.batchSize = batchSize;
     }
 
     public void execute(QueueableContext context) {
-        try {
-            String type = searchKey.split(':')[0];
-            String value = searchKey.split(':')[1];
 
-            List<String> ctns;
+        List<String> ctns;
 
-            if (type == 'ZIP') {
-                ctns = CTNService.getCTNsByZip(value, addresses.size());
-            } else {
-                ctns = CTNService.getCTNsByAreaCode(value, addresses.size());
-            }
-
-            for (Integer i = 0; i < addresses.size(); i++) {
-                addresses[i].CTN__c = ctns[i];
-            }
-
-            update addresses;
-
-            incrementCompletedBatch();
-
-        } catch (Exception e) {
-            update new CTN_Assignment_Job__c(
-                Id = jobId,
-                Status__c = 'FAILED',
-                Error_Message__c = e.getMessage()
-            );
-        }
-    }
-
-    private void incrementCompletedBatch() {
-        CTN_Assignment_Job__c job = [
-            SELECT Completed_Batches__c, Total_Batches__c
-            FROM CTN_Assignment_Job__c
-            WHERE Id = :jobId
-            FOR UPDATE
-        ];
-
-        job.Completed_Batches__c++;
-
-        if (job.Completed_Batches__c == job.Total_Batches__c) {
-            job.Status__c = 'COMPLETED';
+        if (searchType == 'ZIP') {
+            ctns = CTNService.getCTNsByZip(searchValue, batchSize);
+        } else {
+            ctns = CTNService.getCTNsByAreaCode(searchValue, batchSize);
         }
 
-        update job;
+        // 🔹 Optional: Do something with CTNs
+        // insert CTN__c records
+        // publish platform event
+        // cache in custom metadata
     }
 }
-
-
-
-
 
 
 
@@ -185,4 +110,3 @@ public class CTNService {
         return (List<String>) response.get('ctns');
     }
 }
-
