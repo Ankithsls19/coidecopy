@@ -27,3 +27,31 @@ with requestBody:
 
 so help me create the apex classes properly..
 like the user can have 25 addresses each having 25 different zipCode and areaCodes, so in the worst case we will have to make 25 api calls.
+
+
+
+{
+"id": "line-1",
+"lineLabel": "Line 1: Apple iPhone 15 Pro",
+"device": "Apple iPhone 15 Pro",
+"ratePlan": "AT&T Unlimited Premium",
+"logoUrl": "https://absatt--frdevnp1--c.sandbox.vf.force.com/resource/1763757539000/iPhone15ProMockLogo",
+"ppuValue": "308 S AKARD ST, RM 908, DALLAS, TX, 75202-5315",
+"isselected": true,
+"isdisabled": false,
+"address": "308 S AKARD ST, RM 908, DALLAS, TX, 75202-5315",
+"useBilling": false,
+"validationState": null,
+"validatedAddress": null,
+"glid": "00001JW7E3",
+"zipCode": "75202",
+"suggestedctn": {},
+"ctn": {
+"raw": "7520200001",
+"formatted": "(752) 020-0001"
+},
+"subscriber": {
+"firstName": null,
+"lastName": null
+}
+}
