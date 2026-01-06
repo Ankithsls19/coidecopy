@@ -1,0 +1,29 @@
+Hi Bro,
+
+i need your help to write the best possible apex code now..
+a complex scenario this is.
+
+I have an LWC in which on click of a button i form a array like this
+[{searchType: 'zipCode', searchValue: '56334', count: 7},
+{searchType: 'areaCode', searchValue: '334', count: 4},
+{searchType: 'areaCode', searchValue: '544', count: 10},
+{searchType: 'zipCode', searchValue: '52384', count: 2}]
+
+so basically the user has addresses and he can select to search the CTNs using zip code or area code.
+the array above mentioned created will have grouped the addresses based on zipcode and areacode and the count of addresses in each of them.
+
+i need to call an apex class and pass this array. Need to make api call in it to fetch the numbers.
+
+for the api call,
+we can only include 1 zipCode or 1 areaCode. Also the count of Address per call cant be more than 5.
+So, lets say for this
+{searchType: 'zipCode', searchValue: '56334', count: 7} -> 2 api calls need to be made
+with requestBody:
+{ "zipCode":"56334", "countOfCTNs" : 5 } and { "zipCode":"56334", "countOfCTNs" : 2 }
+
+For {searchType: 'areaCode', searchValue: '544', count: 10} -> 2 api calls are needed
+with requestBody:
+{ "areaCode":"544", "countOfCTNs" : 5 } and { "areCode":"544", "countOfCTNs" : 5 }
+
+so help me create the apex classes properly..
+like the user can have 25 addresses each having 25 different zipCode and areaCodes, so in the worst case we will have to make 25 api calls.
